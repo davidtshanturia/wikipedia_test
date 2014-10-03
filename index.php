@@ -1,5 +1,5 @@
 <?php
-$revision_dir = dirname(__FILE__).DIRECTORY_SEPARATOR.'rev';
+$revision_dir = dirname(__FILE__).DIRECTORY_SEPARATOR.'revisions';
 $lock_key = 'atomic_lock_timeout';
 $text_key = "text_key";
 $message='';
