@@ -133,7 +133,7 @@ if(!empty($_FILES)){
 
 $content = $mem->get($text_key);
 $article_file = $mem->get($revision_key);
-if($text === FALSE || $article_file == FALSE){
+if($text === FALSE || $article_file === FALSE){
 	$content = merge_revisions();
 	$mem->add($text_key, $content);
 	@file_put_contents('article_merged.txt', $content);
