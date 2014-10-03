@@ -43,7 +43,7 @@ function getNewId(){
 		closedir($revision_dir);
 	}catch(Exception $e){return false;}
 	
-	return $count;
+	return $count.'_'.uniqid();
 }
 function strip_html($html){
 	return preg_replace('#<script(.*?)>(.*?)</script>#is', '', $html);
