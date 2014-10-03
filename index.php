@@ -52,7 +52,10 @@ function getAppended($fname, $tmpfile){
 	global $revision_dir;
 	try{
 		$arr = explode('_', $fname);
-		$bytes = intval($arr[1]);
+		
+		if(count($arr) > 0) $bytes = intval($arr[1]);
+		else $bytes = 0;
+		
 		$fp = fopen($tmpfile, 'r');
 		fseek($fp, $bytes);
 		$data = fread($fp, filesize($tmpfile));
@@ -168,9 +171,8 @@ if($content === FALSE || $article_file === FALSE){
 	<?=$article_file?>
 		[ <a href="article_merged.txt" download="<?=$article_file?>">Download</a>
 		|
-		<form action="index.php" method="post" enctype="multipart/form-data"
-			style="display: inline; background: #ccc; padding: 5px;">
-			<input type="file" name="file" id="file" style="width: 200px;" /> <input
+		<form action="index.php" method="post" enctype="multipart/form-data" style="display: inline; background: #ccc; padding: 5px;">
+			<input type="file" name="file" id="file" /> <input
 				type="submit" name="submit" value="Upload File" />
 		</form>
 		]
