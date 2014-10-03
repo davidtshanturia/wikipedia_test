@@ -3,7 +3,7 @@ wikipedia_test
 
 This is simple approach with php and the idea behind it is to use memcache for caching and for locking approach.
 
-This approach does not include merging revisions, so that only latest upload is displayed.
+This approach include merging revisions based on appending.
 
 
 System requirements:
