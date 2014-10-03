@@ -89,7 +89,7 @@ if(!empty($_FILES)){
 	    	$message = "Return Code: " . $_FILES["file"]["error"];
 	  	}else {
 	  	  
-	  	  $locked = true;//acquireLock();
+	  	  $locked = acquireLock();
 	  	  if(!$locked) $message = "Could not acquire lock! Please try again.";
 	  	  else{
 		  	  try{
