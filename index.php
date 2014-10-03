@@ -7,7 +7,6 @@ $revision_key = "latest_revision";
 $max_size = 20000;
 $max_revisions = 10;
 $message='';
-$last_revision_lines = 0;
 
 $mem = new Memcached;
 $mem->addServer("127.0.0.1", 11211);
