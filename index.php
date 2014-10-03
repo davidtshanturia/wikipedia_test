@@ -3,6 +3,7 @@ $revision_dir = dirname(__FILE__).DIRECTORY_SEPARATOR.'revisions';
 $article_file = "0_0.txt";
 $lock_key = 'atomic_lock_timeout';
 $text_key = "text_key";
+$revision_key = "latest_revision";
 $max_size = 20000;
 $max_revisions = 10;
 $message='';
@@ -78,7 +79,7 @@ function strip_html($html){
 }
 function uploadFile(){
 
-	global $max_size, $max_revisions, $revision_dir, $mem;
+	global $max_size, $max_revisions, $revision_dir, $revision_key, $text_key, $mem;
 
 	try{
 
@@ -133,7 +134,7 @@ if(!empty($_FILES)){
 
 $content = $mem->get($text_key);
 $article_file = $mem->get($revision_key);
-if($text === FALSE || $article_file === FALSE){
+if($content === FALSE || $article_file === FALSE){
 	$content = merge_revisions();
 	$mem->add($text_key, $content);
 	@file_put_contents('article_merged.txt', $content);
