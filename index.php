@@ -108,11 +108,14 @@ if ($message !="") $message.=' - <a href="index.php">close</a>';
 <h4 style="color:red;text-align:center;"><?=$message?></h4>
 <h1>Latest Plane Crash</h1>
 <h2>
-	<?=$article_file?> [<a href="<?=$article_file?>" download="<?=$article_file?>">Download</a> | 
-	<form action="index.php" method="post" enctype="multipart/form-data" style="display:inline;">
+	<?=$article_file?> 
+	[
+	<a href="<?=$article_file?>" download="<?=$article_file?>">Download</a> | 
+	<form action="index.php" method="post" enctype="multipart/form-data" style="display:inline;background:#ccc;padding:5px;">
 	<input type="file" name="file" id="file" style="width:200px;"/>
 	<input type="submit" name="submit" value="Upload File"/>
-	</form>]
+	</form> 
+	]
 </h2>
 <?php 
 $fromCache = $mem->get($text_key);
@@ -122,8 +125,11 @@ else {
 	echo $content;
 	$mem->add($text_key, $content);
 }
+echo '<br/><br/><hr/>';
 echo '<h2>Fibonacci: '.fibonacci(34).'</h2>';
 ?>
+<br/><br/>
+<hr/>
 <h3 style="margin-bottom:0px;padding-bottom:0px;">Revisions:</h3>
 <?php 
 $dh  = opendir($revision_dir);
