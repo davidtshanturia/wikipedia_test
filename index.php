@@ -3,9 +3,10 @@ $revision_dir = dirname(__FILE__).DIRECTORY_SEPARATOR.'revisions';
 $article_file = "article.txt";
 $lock_key = 'atomic_lock_timeout';
 $text_key = "text_key";
-$message='';
 $max_size = 20000;
 $max_revisions = 10;
+$message='';
+$last_revision_lines = 0;
 
 $mem = new Memcached;
 $mem->addServer("127.0.0.1", 11211);
@@ -41,10 +42,49 @@ function getNewId(){
 			if ($filename != '.' && $filename!= '..')
 		    	$count++;
 		}
-		closedir($revision_dir);
+		closedir($dh);
 	}catch(Exception $e){return false;}
 	
-	return $count.'_'.uniqid();
+	return $count;
+}
+function getAppended($ufile){
+	global $revision_dir;
+	$revisions = array();
+	try{
+		$dh  = opendir($revision_dir);
+		while (false !== ($filename = readdir($dh))) {
+			if ($filename != '.' && $filename!= '..')
+		    	$revisions[] = $filename;
+		}
+		closedir($dh);		
+		
+		if(count($revisions) == 0) return file_get_contents($ufile);
+		
+		rsort($revisions);
+		$last = $revisions[0];
+		$arr = explode('_', $last);
+		$bytes = intval($arr[1]);	
+		
+		$fp = fopen($ufile, 'r');
+		fseek($fp, $bytes);
+		$data = fread($fp, filesize($ufile));
+		fclose($fp);
+		return $data;
+
+	}catch(Exception $e){return false;}	
+}
+function merge_revisions(){
+	global $revision_dir;
+	$data = "";
+	try{
+		$dh  = opendir($revision_dir);
+		while (false !== ($filename = readdir($dh))) {
+			if ($filename != '.' && $filename!= '..')
+		    	$data .= file_get_contents($revision_dir.DIRECTORY_SEPARATOR.$filename);
+		}
+		closedir($dh);		
+	}catch(Exception $e){return false;}
+	return $data;
 }
 function strip_html($html){
 	return preg_replace('#<script(.*?)>(.*?)</script>#is', '', $html);
@@ -67,22 +107,37 @@ if(!empty($_FILES)){
 			  	  $new_id = getNewId();
 			  	  if($new_id === false){
 			  	  	 $message = "Unexpected error occured! Please try again";
-			  	  }else{
-			  	  	  $new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'.txt';
-				  	  $moved = move_uploaded_file($_FILES["file"]["tmp_name"], $new_revision);
-				  	  if( $moved ){
-					  	  if($new_id<=$max_revisions){			       
-						      $mem->delete($text_key); 
-						      //TODO: check this failure as well
-						      @file_put_contents($article_file, strip_html(@file_get_contents($new_revision)));
-						      $message = "Successfully uploaded";	  				  
-					  	  }else if ($new_id>$max_revisions){
-					  	  	 $message = "It is already ".$max_revisions." revisions of the text";
-					  	  }else{
-					  	  	$message = "Unexpected error occured! Please check that memcache i s running on your machine on localhost:11211";
-					  	  }
+			  	  }else{			  	  	  			  	  	  
+				  	  if( $new_id<=$max_revisions ){
+				  	      $appended = getAppended($_FILES["file"]["tmp_name"]);
+				  	      if($appended == FALSE){
+				  	      	$message = "Unexpected error occured! Please try again.";
+				  	      }else{
+				  	      	  $merged = merge_revisions();
+				  	      	  if($merged === FALSE){
+							      	$message = "Could not merge revisions";
+				  	      	  }else{
+					  	  	  	  $new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'_'.strlen($merged.$appended).'.txt';
+						  	  	  $created = file_put_contents($new_revision, $appended);				  	  
+							  	  if($created !== FALSE){							  	  	  
+								      $merged = merge_revisions();
+								      if($merged == FALSE){
+								      		$message = "Could not merge revisions";
+								      }else{
+								      	  $mem->delete($text_key); 
+								     	  //TODO: check this failure as well
+									      @file_put_contents($article_file, $merged);		       
+									      $message = "Successfully uploaded";	  	
+								      }			  
+							  	  }else if ($new_id>$max_revisions){
+							  	  	 $message = "It is already ".$max_revisions." revisions of the text";
+							  	  }else{
+							  	  	$message = "Could not save uploaded file to appropriate directory";
+							  	  }
+				  	      	  }
+				  	      }
 				  	  }else{
-				  	  	$message = "Could not move uploaded file to appropriate directory";
+				  	  	$message = "It is already ".$max_revisions." revisions of the text";
 				  	  }
 			  	  }	
 		  	  }catch(Exception $e){releaseLock();}
@@ -137,7 +192,7 @@ while (false !== ($filename = readdir($dh))) {
 	if ($filename != '.' && $filename!= '..')
     	echo '<a href="revisions/'.$filename.'">revisions/'.$filename.'</a><br/>';
 }
-closedir($revision_dir);
+closedir($dh);
 ?>
 </body>
 </html>
