@@ -1,6 +1,6 @@
 <?php
 $revision_dir = dirname(__FILE__).DIRECTORY_SEPARATOR.'revisions';
-$article_file = "article.txt";
+$article_file = "0_0.txt";
 $lock_key = 'atomic_lock_timeout';
 $text_key = "text_key";
 $max_size = 20000;
@@ -47,27 +47,15 @@ function getNewId(){
 	
 	return $count;
 }
-function getAppended($ufile){
-	global $revision_dir;
-	$revisions = array();
+function getAppended($fname, $tmpfile){
+	global $revision_dir;	
 	try{
-		$dh  = opendir($revision_dir);
-		while (false !== ($filename = readdir($dh))) {
-			if ($filename != '.' && $filename!= '..')
-		    	$revisions[] = $filename;
-		}
-		closedir($dh);		
-		
-		if(count($revisions) == 0) return file_get_contents($ufile);
-		
-		rsort($revisions);
-		$last = $revisions[0];
-		$arr = explode('_', $last);
+		$arr = explode('_', $fname);
 		$bytes = intval($arr[1]);	
 		
-		$fp = fopen($ufile, 'r');
+		$fp = fopen($tmpfile, 'r');
 		fseek($fp, $bytes);
-		$data = fread($fp, filesize($ufile));
+		$data = fread($fp, filesize($tmpfile));
 		fclose($fp);
 		return $data;
 
@@ -94,13 +82,14 @@ function strip_html($html){
 if(!empty($_FILES)){
 	$temp = explode(".", $_FILES["file"]["name"]);
 	$extension = end($temp);
+	$fname = $temp[0];
 	
 	if ($_FILES["file"]["type"] == "text/plain" && $_FILES["file"]["size"] < $max_size && $extension=='txt') {  
 		if ($_FILES["file"]["error"] > 0) {
 	    	$message = "Return Code: " . $_FILES["file"]["error"];
 	  	}else {
 	  	  
-	  	  $locked = acquireLock();
+	  	  $locked = true;//acquireLock();
 	  	  if(!$locked) $message = "Could not acquire lock! Please try again.";
 	  	  else{
 		  	  try{
@@ -109,7 +98,7 @@ if(!empty($_FILES)){
 			  	  	 $message = "Unexpected error occured! Please try again";
 			  	  }else{			  	  	  			  	  	  
 				  	  if( $new_id<=$max_revisions ){
-				  	      $appended = getAppended($_FILES["file"]["tmp_name"]);
+				  	      $appended = getAppended($fname, $_FILES["file"]["tmp_name"]);
 				  	      if($appended == FALSE){
 				  	      	$message = "Unexpected error occured! Please try again.";
 				  	      }else{
@@ -125,9 +114,7 @@ if(!empty($_FILES)){
 								      		$message = "Could not merge revisions";
 								      }else{
 								      	  $mem->delete($text_key); 
-								     	  //TODO: check this failure as well
-									      @file_put_contents($article_file, $merged);		       
-									      $message = "Successfully uploaded";	  	
+								     	  $mem->delete($revision_key);	  	
 								      }			  
 							  	  }else if ($new_id>$max_revisions){
 							  	  	 $message = "It is already ".$max_revisions." revisions of the text";
@@ -150,6 +137,26 @@ if(!empty($_FILES)){
 	}
 }
 if ($message !="") $message.=' - <a href="index.php">close</a>';
+
+$content = $mem->get($text_key);
+$article_file = $mem->get($revision_key);
+$content = FALSE;
+if($text === FALSE || $article_file == FALSE){
+	$content = merge_revisions();	
+	$mem->add($text_key, $content);
+	@file_put_contents('article_merged.txt', $content);
+	
+	$dh  = opendir($revision_dir);
+	while (false !== ($filename = readdir($dh))) {
+		if ($filename != '.' && $filename!= '..')
+	    	$revisions[] = $filename;
+	}
+	closedir($dh);
+	
+	rsort($revisions);
+	$article_file = $revisions[0];
+	$mem->add($revision_key, $revisions[0]);		
+}
 ?>
 
 <!DOCTYPE html>
@@ -165,34 +172,19 @@ if ($message !="") $message.=' - <a href="index.php">close</a>';
 <h2>
 	<?=$article_file?> 
 	[
-	<a href="<?=$article_file?>" download="<?=$article_file?>">Download</a> | 
+	<a href="article_merged.txt" download="<?=$article_file?>">Download</a> | 
 	<form action="index.php" method="post" enctype="multipart/form-data" style="display:inline;background:#ccc;padding:5px;">
 	<input type="file" name="file" id="file" style="width:200px;"/>
 	<input type="submit" name="submit" value="Upload File"/>
 	</form> 
 	]
 </h2>
-<?php 
-$fromCache = $mem->get($text_key);
-if($fromCache != '') echo $fromCache;
-else {
-	$content = file_get_contents($article_file);	
-	echo $content;
-	$mem->add($text_key, $content);
-}
+<?php 	
+echo $content;
 echo '<br/><br/><hr/>';
 echo '<h2>Fibonacci(34): '.fibonacci(34).'</h2>';
 ?>
 <br/><br/>
 <hr/>
-<h3 style="margin-bottom:0px;padding-bottom:0px;">Revisions:</h3>
-<?php 
-$dh  = opendir($revision_dir);
-while (false !== ($filename = readdir($dh))) {
-	if ($filename != '.' && $filename!= '..')
-    	echo '<a href="revisions/'.$filename.'">revisions/'.$filename.'</a><br/>';
-}
-closedir($dh);
-?>
 </body>
 </html>
