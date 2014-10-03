@@ -59,7 +59,7 @@ if(!empty($_FILES)){
 	  	}else {
 	  	  
 	  	  $locked = acquireLock();
-	  	  if(!$locked) $message = "Unexpected error occured! Please try again";
+	  	  if(!$locked) $message = "Could not acquire lock! Please try again.";
 	  	  else{
 		  	  try{
 			  	  $new_id = getNewId();
