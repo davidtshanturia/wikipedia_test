@@ -1,7 +1,7 @@
 wikipedia_test
 ==============
 
-This approach does not includes merging revisions, so that only latest upload is displayed.
+This approach does not include merging revisions, so that only latest upload is displayed.
 
 
 System requirements:
