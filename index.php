@@ -102,12 +102,12 @@ if(!empty($_FILES)){
 			  	  	  $new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'.txt';
 				  	  $moved = move_uploaded_file($_FILES["file"]["tmp_name"], $new_revision);
 				  	  if( $moved ){
-					  	  if($new_id<=$max_revisions){			       
-						      $mem->delete($text_key); 						      
+					  	  if($new_id<=$max_revisions){			       						       						      
 						      $mergered = merge_revisions();
 						      if( $mergered != false){
 						      	  	//TODO: check this failure as well
 							      	@file_put_contents('sample.txt', $mergered);
+							      	$mem->delete($text_key);
 							      	$message = "Successfully uploaded";
 						      }else{
 						      	   	$message = "Cound not merge revisions";
