@@ -45,38 +45,6 @@ function getNewId(){
 	
 	return $count;
 }
-function merge_revisions(){
-	global $revision_dir;
-	$lines = 0;
-	$result = "";
-	try{
-		$dh  = opendir($revision_dir);
-		while (false !== ($filename = readdir($dh))) {
-			if ($filename == '.' || $filename== '..')
-		    	continue;
-		    
-		    $handle = fopen($revision_dir.DIRECTORY_SEPARATOR.$filename, "r");
-			if ($handle) {
-				$current_line = 0;
-			    while (($line = fgets($handle)) !== false) {
-			       $current_line++;
-			       if($current_line > $lines){
-			       		$result .= strip_html($line)."\n";
-			       		$lines++;
-			    	}
-			    }
-			} else {
-			    // error opening the file.
-			} 
-			
-			fclose($handle);
-		}
-		closedir($revision_dir);
-	}catch(Exception $e){return false;}
-	
-	if($result == "") return false;
-	return $result;
-}
 function strip_html($html){
 	return preg_replace('#<script(.*?)>(.*?)</script>#is', '', $html);
 }
@@ -102,16 +70,11 @@ if(!empty($_FILES)){
 			  	  	  $new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'.txt';
 				  	  $moved = move_uploaded_file($_FILES["file"]["tmp_name"], $new_revision);
 				  	  if( $moved ){
-					  	  if($new_id<=$max_revisions){			       						       						      
-						      $mergered = merge_revisions();
-						      if( $mergered != false){
-						      	  	//TODO: check this failure as well
-							      	@file_put_contents('sample.txt', $mergered);
-							      	$mem->delete($text_key);
-							      	$message = "Successfully uploaded";
-						      }else{
-						      	   	$message = "Cound not merge revisions";
-						      } 				  
+					  	  if($new_id<=$max_revisions){			       
+						      $mem->delete($text_key); 
+						      //TODO: check this failure as well
+						      @file_put_contents('sample.txt', strip_html(@file_get_contents($new_revision)));
+						      $message = "Successfully uploaded";	  				  
 					  	  }else if ($new_id>$max_revisions){
 					  	  	 $message = "It is already ".$max_revisions." revisions of the text";
 					  	  }else{
