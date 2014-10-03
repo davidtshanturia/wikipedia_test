@@ -26,8 +26,8 @@ function acquireLock($try = 15, $expire = 100) {
 		$lock = $mem->add($lock_key, 1, $expire);
 		$i++;
 	}
-	if($lock == FALSE) return false;
-	return true;
+	if($lock == FALSE) return FALSE;
+	return TRUE;
 }
 function releaseLock() {
 	global $mem, $lock_key;
@@ -43,7 +43,7 @@ function getNewId(){
 		    	$count++;
 		}
 		closedir($dh);
-	}catch(Exception $e){return false;}
+	}catch(Exception $e){return FALSE;}
 	
 	return $count;
 }
@@ -51,15 +51,14 @@ function getAppended($fname, $tmpfile){
 	global $revision_dir;	
 	try{
 		$arr = explode('_', $fname);
-		$bytes = intval($arr[1]);	
-		
+		$bytes = intval($arr[1]);			
 		$fp = fopen($tmpfile, 'r');
 		fseek($fp, $bytes);
-		$data = fread($fp, filesize($tmpfile));
+		$data = fread($fp, filesize($tmpfile));				
 		fclose($fp);
-		return $data;
+		return strip_html($data);
 
-	}catch(Exception $e){return false;}	
+	}catch(Exception $e){return FALSE;}	
 }
 function merge_revisions(){
 	global $revision_dir;
@@ -71,72 +70,66 @@ function merge_revisions(){
 		    	$data .= file_get_contents($revision_dir.DIRECTORY_SEPARATOR.$filename);
 		}
 		closedir($dh);		
-	}catch(Exception $e){return false;}
+	}catch(Exception $e){return FALSE;}
 	return $data;
 }
 function strip_html($html){
 	return preg_replace('#<script(.*?)>(.*?)</script>#is', '', $html);
 }
-
-//Upload File
-if(!empty($_FILES)){
-	$temp = explode(".", $_FILES["file"]["name"]);
-	$extension = end($temp);
-	$fname = $temp[0];
+function uploadFile(){
 	
-	if ($_FILES["file"]["type"] == "text/plain" && $_FILES["file"]["size"] < $max_size && $extension=='txt') {  
-		if ($_FILES["file"]["error"] > 0) {
-	    	$message = "Return Code: " . $_FILES["file"]["error"];
-	  	}else {
-	  	  
-	  	  $locked = acquireLock();
-	  	  if(!$locked) $message = "Could not acquire lock! Please try again.";
-	  	  else{
-		  	  try{
-			  	  $new_id = getNewId();
-			  	  if($new_id === false){
-			  	  	 $message = "Unexpected error occured! Please try again";
-			  	  }else{			  	  	  			  	  	  
-				  	  if( $new_id<=$max_revisions ){
-				  	      $appended = getAppended($fname, $_FILES["file"]["tmp_name"]);
-				  	      if($appended == FALSE){
-				  	      	$message = "Unexpected error occured! Please try again.";
-				  	      }else{
-				  	      	  $merged = merge_revisions();
-				  	      	  if($merged === FALSE){
-							      	$message = "Could not merge revisions";
-				  	      	  }else{
-					  	  	  	  $new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'_'.strlen($merged.$appended).'.txt';
-						  	  	  $created = file_put_contents($new_revision, $appended);				  	  
-							  	  if($created !== FALSE){							  	  	  
-								      $merged = merge_revisions();
-								      if($merged == FALSE){
-								      		$message = "Could not merge revisions";
-								      }else{
-								      	  $mem->delete($text_key); 
-								     	  $mem->delete($revision_key);	  	
-								      }			  
-							  	  }else if ($new_id>$max_revisions){
-							  	  	 $message = "It is already ".$max_revisions." revisions of the text";
-							  	  }else{
-							  	  	$message = "Could not save uploaded file to appropriate directory";
-							  	  }
-				  	      	  }
-				  	      }
-				  	  }else{
-				  	  	$message = "It is already ".$max_revisions." revisions of the text";
-				  	  }
-			  	  }	
-		  	  }catch(Exception $e){releaseLock();}
-		  	  
-		  	  releaseLock();
-	  	  }
-	    }
-	}else{
-	  $message = "Invalid file! Please check that your file is .txt text file and is less then ".$max_size." bytes.";
-	}
+	global $max_size, $max_revisions, $revision_dir, $mem;		
+    
+	try{
+		
+		$temp = explode(".", $_FILES["file"]["name"]);
+		$extension = end($temp);
+		$fname = $temp[0];
+	
+		if ($_FILES["file"]["type"] != "text/plain" || $_FILES["file"]["size"] > $max_size || $extension!='txt')
+			return "Invalid file! Please check that your file is .txt text file and is less then ".$max_size." bytes.";		
+		
+		if ($_FILES["file"]["error"] > 0) return "Return Code: " . $_FILES["file"]["error"];
+	
+		$locked = acquireLock();
+		if(!$locked) return "Could not acquire lock! Please try again.";
+  	  	
+		$new_id = getNewId();
+		if($new_id === FALSE) return "Unexpected error occured! Please try again"; 
+		if( $new_id >= $max_revisions ) return "It is already ".$max_revisions." revisions of the text";
+    
+      	$appended = getAppended($fname, $_FILES["file"]["tmp_name"]);
+      	if($appended === FALSE) return "Unexpected error occured! Please try again.";
+          
+      	$merged = merge_revisions();
+      	if($merged === FALSE) return "Could not merge revisions";
+      
+      	$new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'_'.strlen($merged.$appended).'.txt';
+      	$created = file_put_contents($new_revision, $appended);
+      	if($created === FALSE) return "Could not save uploaded file to appropriate directory";
+      
+      	$merged = merge_revisions();
+      	if($merged === FALSE) return "Could not merge revisions";
+
+      	$mem->delete($text_key); 
+      	$mem->delete($revision_key);
+      	return TRUE;
+      
+    }catch(Exception $e){
+    	return $e->getMessage();
+    }		  	 	
 }
-if ($message !="") $message.=' - <a href="index.php">close</a>';
+
+if(!empty($_FILES)){
+	
+	$msg = uploadFile();
+	releaseLock();
+	
+	if($msg !== TRUE) $message = $msg;
+	else $message = "Uploaded Successfully";
+	
+	$message.=' - <a href="index.php">close</a>';
+}
 
 $content = $mem->get($text_key);
 $article_file = $mem->get($revision_key);
