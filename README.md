@@ -1,6 +1,7 @@
 wikipedia_test
 ==============
-This is simple php test.
+
+This approach does not include merging revisions, so it will overwrite latest.
 
 
 System requirements:
