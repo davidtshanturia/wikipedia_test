@@ -1,5 +1,6 @@
 <?php
 $revision_dir = dirname(__FILE__).DIRECTORY_SEPARATOR.'revisions';
+$article_file = "article.txt";
 $lock_key = 'atomic_lock_timeout';
 $text_key = "text_key";
 $message='';
@@ -73,7 +74,7 @@ if(!empty($_FILES)){
 					  	  if($new_id<=$max_revisions){			       
 						      $mem->delete($text_key); 
 						      //TODO: check this failure as well
-						      @file_put_contents('sample.txt', strip_html(@file_get_contents($new_revision)));
+						      @file_put_contents($article_file, strip_html(@file_get_contents($new_revision)));
 						      $message = "Successfully uploaded";	  				  
 					  	  }else if ($new_id>$max_revisions){
 					  	  	 $message = "It is already ".$max_revisions." revisions of the text";
@@ -107,7 +108,7 @@ if ($message !="") $message.=' - <a href="index.php">close</a>';
 <h4 style="color:red;text-align:center;"><?=$message?></h4>
 <h1>Latest Plane Crash</h1>
 <h2>
-	Sample.txt [<a href="sample.txt" download="sample.txt">Download</a> | 
+	<?=$article_file?> [<a href="<?=$article_file?>" download="<?=$article_file?>">Download</a> | 
 	<form action="index.php" method="post" enctype="multipart/form-data" style="display:inline;">
 	<input type="file" name="file" id="file" style="width:200px;"/>
 	<input type="submit" name="submit" value="Upload File"/>
@@ -117,7 +118,7 @@ if ($message !="") $message.=' - <a href="index.php">close</a>';
 $fromCache = $mem->get($text_key);
 if($fromCache != '') echo $fromCache;
 else {
-	$content = file_get_contents('sample.txt');	
+	$content = file_get_contents($article_file);	
 	echo $content;
 	$mem->add($text_key, $content);
 }
