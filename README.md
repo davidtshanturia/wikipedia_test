@@ -1,7 +1,7 @@
 wikipedia_test
 ==============
 
-This approach includes simple merging revisions, so that user can only append current content.
+This approach does not includes merging revisions, so that only latest upload is displayed.
 
 
 System requirements:
