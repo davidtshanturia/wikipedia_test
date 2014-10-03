@@ -126,7 +126,7 @@ else {
 	$mem->add($text_key, $content);
 }
 echo '<br/><br/><hr/>';
-echo '<h2>Fibonacci: '.fibonacci(34).'</h2>';
+echo '<h2>Fibonacci(34): '.fibonacci(34).'</h2>';
 ?>
 <br/><br/>
 <hr/>
