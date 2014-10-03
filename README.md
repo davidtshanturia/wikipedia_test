@@ -1,7 +1,7 @@
 wikipedia_test
 ==============
 
-This approach does not include merging revisions, so it will overwrite latest.
+This approach includes simple merging revisions, so that user can only append current content.
 
 
 System requirements:
