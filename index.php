@@ -140,7 +140,6 @@ if ($message !="") $message.=' - <a href="index.php">close</a>';
 
 $content = $mem->get($text_key);
 $article_file = $mem->get($revision_key);
-$content = FALSE;
 if($text === FALSE || $article_file == FALSE){
 	$content = merge_revisions();	
 	$mem->add($text_key, $content);
