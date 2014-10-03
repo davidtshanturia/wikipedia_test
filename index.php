@@ -58,33 +58,35 @@ if(!empty($_FILES)){
 	    	$message = "Return Code: " . $_FILES["file"]["error"];
 	  	}else {
 	  	  
-	  	  acquireLock();
-	  	  
-	  	  try{
-		  	  $new_id = getNewId();
-		  	  if($new_id === false){
-		  	  	 $message = "Unexpected error occured! Please try again";
-		  	  }else{
-		  	  	  $new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'.txt';
-			  	  $moved = move_uploaded_file($_FILES["file"]["tmp_name"], $new_revision);
-			  	  if( $moved ){
-				  	  if($new_id<=$max_revisions){			       
-					      $mem->delete($text_key); 
-					      //TODO: check this failure as well
-					      @file_put_contents('sample.txt', strip_html(@file_get_contents($new_revision)));
-					      $message = "Successfully uploaded";	  				  
-				  	  }else if ($new_id>$max_revisions){
-				  	  	 $message = "It is already ".$max_revisions." revisions of the text";
-				  	  }else{
-				  	  	$message = "Unexpected error occured! Please check that memcache i s running on your machine on localhost:11211";
-				  	  }
+	  	  $locked = acquireLock();
+	  	  if(!$locked) $message = "Unexpected error occured! Please try again";
+	  	  else{
+		  	  try{
+			  	  $new_id = getNewId();
+			  	  if($new_id === false){
+			  	  	 $message = "Unexpected error occured! Please try again";
 			  	  }else{
-			  	  	$message = "Could not move uploaded file to appropriate directory";
-			  	  }
-		  	  }	
-	  	  }catch(Exception $e){releaseLock();}
-	  	  
-	  	  releaseLock();
+			  	  	  $new_revision = $revision_dir.DIRECTORY_SEPARATOR.$new_id.'.txt';
+				  	  $moved = move_uploaded_file($_FILES["file"]["tmp_name"], $new_revision);
+				  	  if( $moved ){
+					  	  if($new_id<=$max_revisions){			       
+						      $mem->delete($text_key); 
+						      //TODO: check this failure as well
+						      @file_put_contents('sample.txt', strip_html(@file_get_contents($new_revision)));
+						      $message = "Successfully uploaded";	  				  
+					  	  }else if ($new_id>$max_revisions){
+					  	  	 $message = "It is already ".$max_revisions." revisions of the text";
+					  	  }else{
+					  	  	$message = "Unexpected error occured! Please check that memcache i s running on your machine on localhost:11211";
+					  	  }
+				  	  }else{
+				  	  	$message = "Could not move uploaded file to appropriate directory";
+				  	  }
+			  	  }	
+		  	  }catch(Exception $e){releaseLock();}
+		  	  
+		  	  releaseLock();
+	  	  }
 	    }
 	}else{
 	  $message = "Invalid file! Please check that your file is .txt text file and is less then ".$max_size." bytes.";
