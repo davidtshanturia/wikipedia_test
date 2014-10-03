@@ -123,5 +123,14 @@ else {
 }
 echo '<h2>Fibonacci: '.fibonacci(34).'</h2>';
 ?>
+<h3 style="margin-bottom:0px;padding-bottom:0px;">Revisions:</h3>
+<?php 
+$dh  = opendir($revision_dir);
+while (false !== ($filename = readdir($dh))) {
+	if ($filename != '.' && $filename!= '..')
+    	echo '<a href="revisions/'.$filename.'">revisions/'.$filename.'</a><br/>';
+}
+closedir($revision_dir);
+?>
 </body>
 </html>
